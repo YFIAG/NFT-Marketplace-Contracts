@@ -1,0 +1,478 @@
+[
+    { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "rootIdToken",
+          "type": "uint256"
+        }
+      ],
+      "name": "AddLaunchpad",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint80",
+          "name": "blockNumber",
+          "type": "uint80"
+        }
+      ],
+      "name": "AddLaunchpadCheckpoint",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint80",
+          "name": "blockNumber",
+          "type": "uint80"
+        }
+      ],
+      "name": "AddUserCheckpoint",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "rootIdToken",
+          "type": "uint256"
+        }
+      ],
+      "name": "Claim",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        }
+      ],
+      "name": "DisableLaunchpad",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint104",
+          "name": "amount",
+          "type": "uint104"
+        }
+      ],
+      "name": "Stake",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint24",
+          "name": "launchpadId",
+          "type": "uint24"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint104",
+          "name": "amount",
+          "type": "uint104"
+        }
+      ],
+      "name": "Unstake",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        { "internalType": "string", "name": "name", "type": "string" },
+        {
+          "internalType": "contract ERC20",
+          "name": "stakeToken",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "_weightAccrualRate",
+          "type": "uint24"
+        },
+        { "internalType": "uint256", "name": "_rootId", "type": "uint256" },
+        { "internalType": "uint256", "name": "_startTime", "type": "uint256" },
+        { "internalType": "uint256", "name": "_endTime", "type": "uint256" },
+        { "internalType": "uint104", "name": "_minTotalStake", "type": "uint104" }
+      ],
+      "name": "addLaunchPad",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" },
+        { "internalType": "address", "name": "user", "type": "address" }
+      ],
+      "name": "amountRefundToken",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" }
+      ],
+      "name": "claim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" }
+      ],
+      "name": "disableLaunchpad",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" },
+        { "internalType": "uint80", "name": "blockNumber", "type": "uint80" }
+      ],
+      "name": "getTotalStakeWeight",
+      "outputs": [{ "internalType": "uint192", "name": "", "type": "uint192" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" }
+      ],
+      "name": "getTotalStakedLaunchpad",
+      "outputs": [{ "internalType": "uint104", "name": "", "type": "uint104" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" },
+        { "internalType": "address", "name": "user", "type": "address" }
+      ],
+      "name": "getTotalStakedUser",
+      "outputs": [{ "internalType": "uint104", "name": "", "type": "uint104" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" },
+        { "internalType": "address", "name": "user", "type": "address" },
+        { "internalType": "uint80", "name": "blockNumber", "type": "uint80" }
+      ],
+      "name": "getUserStakeWeight",
+      "outputs": [{ "internalType": "uint192", "name": "", "type": "uint192" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "uint24", "name": "", "type": "uint24" }],
+      "name": "launchpadCheckpointCount",
+      "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "", "type": "uint24" },
+        { "internalType": "uint32", "name": "", "type": "uint32" }
+      ],
+      "name": "launchpadCheckpoints",
+      "outputs": [
+        { "internalType": "uint80", "name": "blockNumber", "type": "uint80" },
+        { "internalType": "uint104", "name": "totalStaked", "type": "uint104" },
+        {
+          "internalType": "uint192",
+          "name": "totalStakeWeight",
+          "type": "uint192"
+        },
+        { "internalType": "uint24", "name": "numFinishedSales", "type": "uint24" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "launchpadCount",
+      "outputs": [{ "internalType": "uint24", "name": "", "type": "uint24" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "uint24", "name": "", "type": "uint24" }],
+      "name": "launchpadDisabled",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "", "type": "uint24" },
+        { "internalType": "uint24", "name": "", "type": "uint24" }
+      ],
+      "name": "launchpadFinishedSaleBlocks",
+      "outputs": [{ "internalType": "uint80", "name": "", "type": "uint80" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "", "type": "uint24" },
+        { "internalType": "uint256", "name": "", "type": "uint256" }
+      ],
+      "name": "launchpadStakers",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "name": "launchpads",
+      "outputs": [
+        { "internalType": "string", "name": "name", "type": "string" },
+        {
+          "internalType": "contract ERC20",
+          "name": "stakeToken",
+          "type": "address"
+        },
+        {
+          "internalType": "uint24",
+          "name": "weightAccrualRate",
+          "type": "uint24"
+        },
+        { "internalType": "uint256", "name": "rootIdToken", "type": "uint256" },
+        { "internalType": "uint256", "name": "startTime", "type": "uint256" },
+        { "internalType": "uint256", "name": "endTime", "type": "uint256" },
+        { "internalType": "uint104", "name": "minTotalStake", "type": "uint104" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{ "internalType": "uint24", "name": "", "type": "uint24" }],
+      "name": "numLaunchPadStakers",
+      "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "paybNftMarketplace",
+      "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_PaybNftMarketplace",
+          "type": "address"
+        }
+      ],
+      "name": "setAddressMarketplace",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" },
+        { "internalType": "address[]", "name": "_winners", "type": "address[]" }
+      ],
+      "name": "setWinners",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" },
+        { "internalType": "uint104", "name": "amount", "type": "uint104" }
+      ],
+      "name": "stake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "newOwner", "type": "address" }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" }
+      ],
+      "name": "unstake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "", "type": "uint24" },
+        { "internalType": "address", "name": "", "type": "address" }
+      ],
+      "name": "userCheckpointCounts",
+      "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "", "type": "uint24" },
+        { "internalType": "address", "name": "", "type": "address" },
+        { "internalType": "uint32", "name": "", "type": "uint32" }
+      ],
+      "name": "userCheckpoints",
+      "outputs": [
+        { "internalType": "uint80", "name": "blockNumber", "type": "uint80" },
+        { "internalType": "uint104", "name": "staked", "type": "uint104" },
+        { "internalType": "uint192", "name": "stakeWeight", "type": "uint192" },
+        { "internalType": "uint24", "name": "numFinishedSales", "type": "uint24" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "", "type": "uint24" },
+        { "internalType": "address", "name": "", "type": "address" }
+      ],
+      "name": "winners",
+      "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint24", "name": "launchpadId", "type": "uint24" }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ]
+  
