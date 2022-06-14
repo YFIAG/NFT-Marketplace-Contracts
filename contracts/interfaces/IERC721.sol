@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.4;
+pragma solidity 0.8.12;
 
 import "../utils/IERC165.sol";
 
@@ -139,4 +139,6 @@ interface IERC721 is IERC165 {
         uint256 tokenId,
         bytes calldata data
     ) external;
+
+    
 }

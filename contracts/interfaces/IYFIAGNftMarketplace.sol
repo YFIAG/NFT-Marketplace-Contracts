@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.12;
 
 interface IYFIAGNftMarketplace {
     // Event =================================================================================
     event PriceChanged(uint256 _tokenId, uint256 _price, address _tokenAddress, address _user);
     event RoyaltyChanged(uint256 _tokenId, uint256 _royalty, address _user);
     event FundsTransfer(uint256 _tokenId, uint256 _amount, address _user);
-
 
     //Function ================================================================================
 
@@ -33,6 +32,8 @@ interface IYFIAGNftMarketplace {
 
     function getAmountEarn(address _user, address _tokenAddress) external view returns(uint256);
 
+    function isOwnerOfRoot(uint256 _tokenId,address owner) external view returns(bool);
+
     function setDefaultAmountEarn(address _user, address _tokenAddress) external;
 
     function setPlatformFeeAddress(address newPlatformFeeAddess) external;
@@ -41,8 +42,5 @@ interface IYFIAGNftMarketplace {
 
     function burn(uint256 _tokenId) external;
 
-    function buyAndBurn(uint256 _tokenId) external payable;
-
-    function mintByCrosschain(address _to,address _token, string memory _uri, uint256 _royalty, address _creator) external;
-
+    function getMaxFragment() external view returns(uint256);
 }

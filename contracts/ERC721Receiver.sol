@@ -1,4 +1,5 @@
-pragma solidity >=0.8.4 <= 0.8.6;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.12;
 
 /**
  * @title ERC721 token receiver interface

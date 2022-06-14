@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.12;
 
 import "./utils/Ownable.sol";
 import "./utils/ReentrancyGuard.sol";
@@ -15,7 +15,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     // CONSTANTS
 
     // number of decimals of rollover factors
-    uint64 constant ROLLOVER_FACTOR_DECIMALS = 10**18;
+    uint64 public constant ROLLOVER_FACTOR_DECIMALS = 10**18;
 
     // STRUCTS
 
@@ -103,16 +103,24 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     mapping(uint24 => mapping(address => bool)) public winners;
 
     //YFIAGNftMarketplace
-    address public YFIAGNftMarketplace;
+    address public yfiagNftMarketplace;
 
     // balance of Fee launchpad--(launchpad) => balances
-    mapping (uint24 => uint256) balanceOfLaunchpad;
+    mapping (uint24 => uint256) public balanceOfLaunchpad;
+
+    mapping (uint24 => uint256) public totalBalanceOfLaunchpad;
+
+    mapping (uint24 => uint256) public amountOfWinners;
+
+    mapping (uint24 => bool) public hasSetLaunchpadWinner;
+
+    mapping (uint24 => bool) public hasWithdrawFund;
 
     // check already claim --(launchpad, sender) => bool (is claimed)
-    mapping (uint24 => mapping(address => bool)) isClaimed;
+    mapping (uint24 => mapping(address => bool)) public isClaimed;
 
     // check is stakers --(launchpad, sender) => bool(is staked)
-    mapping(uint24 => mapping(address => bool)) isStakers;
+    mapping(uint24 => mapping(address => bool)) public isStakers;
 
     // EVENTS
 
@@ -127,14 +135,20 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     // MODIFIER
 
     modifier launchpadNotFound(uint24 launchpadId){
-        require(launchpadId <= launchpads.length, "LP isn't exist");
+        require(launchpadId < launchpads.length, "LP isn't exist");
+        _;
+    }
+    modifier onlyEOA(){
+        require(tx.origin == msg.sender, "Only EOA");
         _;
     }
 
     // CONSTRUCTOR
 
-    constructor(address _YFIAGNftMarketplace) {
-        YFIAGNftMarketplace = _YFIAGNftMarketplace;
+    constructor(address _yfiagNftMarketplace) {
+        require(_yfiagNftMarketplace!= address(0),"Zero address");
+        require(_yfiagNftMarketplace.isContract(),"Not contract");
+        yfiagNftMarketplace = _yfiagNftMarketplace;
     }
 
     // FUNCTIONS
@@ -232,87 +246,26 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
             return 0;
         }
 
-        // get closest preceding launchpad checkpoint
-
-        LaunchpadCheckpoint memory closestLaunchpadCp = getClosestLaunchpadCheckpoint(
-            launchpadId,
-            blockNumber
-        );
-
-        // get number of finished sales between user"s last checkpoint blockNumber and provided blockNumber
-        uint24 numFinishedSalesDelta = closestLaunchpadCp.numFinishedSales -
-            closestUserCheckpoint.numFinishedSales;
 
         // get launchpad info
         LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         // calculate stake weight given above delta
         uint192 stakeWeight;
-        if (numFinishedSalesDelta == 0) {
             // calculate normally without rollover decay
 
-            uint80 elapsedBlocks = blockNumber -
-                closestUserCheckpoint.blockNumber;
+        uint80 elapsedBlocks = blockNumber -
+            closestUserCheckpoint.blockNumber;
 
-            stakeWeight =
-                closestUserCheckpoint.stakeWeight +
-                (uint192(elapsedBlocks) *
-                    launchpad.weightAccrualRate *
-                    closestUserCheckpoint.staked) /
-                10**18;
+        stakeWeight =
+            closestUserCheckpoint.stakeWeight +
+            (uint192(elapsedBlocks) *
+                launchpad.weightAccrualRate *
+                closestUserCheckpoint.staked) /
+            10**18;
 
-            return stakeWeight;
-        } else {
-            // calculate with rollover decay
-
-            // starting stakeweight
-            stakeWeight = closestUserCheckpoint.stakeWeight;
-            // current block for iteration
-            uint80 currBlock = closestUserCheckpoint.blockNumber;
-
-            // for each finished sale in between, get stake weight of that period
-            // and perform weighted sum
-            for (uint24 i = 0; i < numFinishedSalesDelta; i++) {
-                // get number of blocks passed at the current sale number
-                uint80 elapsedBlocks = launchpadFinishedSaleBlocks[launchpadId][
-                    closestUserCheckpoint.numFinishedSales + i
-                ] - currBlock;
-
-                // update stake weight
-                stakeWeight =
-                    stakeWeight +
-                    (uint192(elapsedBlocks) *
-                        launchpad.weightAccrualRate *
-                        closestUserCheckpoint.staked) /
-                    10**18;
-
-
-                // factor in passive and active rollover decay
-                stakeWeight =
-                    // decay passive weight
-                    ((stakeWeight)) /
-                    ROLLOVER_FACTOR_DECIMALS;
-
-                // update currBlock for next round
-                currBlock = launchpadFinishedSaleBlocks[launchpadId][
-                    closestUserCheckpoint.numFinishedSales + i
-                ];
-            }
-
-            // add any remaining accrued stake weight at current finished sale count
-            uint80 remainingElapsed = blockNumber -
-                launchpadFinishedSaleBlocks[launchpadId][
-                    closestLaunchpadCp.numFinishedSales - 1
-                ];
-            stakeWeight +=
-                (uint192(remainingElapsed) *
-                    launchpad.weightAccrualRate *
-                    closestUserCheckpoint.staked) /
-                10**18;
-        }
-
-        // return
         return stakeWeight;
+        
     }
 
     // get closest PRECEDING launchpad checkpoint
@@ -394,7 +347,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         uint80 additionalBlocks = (blockNumber - closestCheckpoint.blockNumber);
 
         // get launchpad info
-        LaunchpadInfo storage launchpadInfo = launchpads[launchpadId];
+        LaunchpadInfo memory launchpadInfo = launchpads[launchpadId];
 
         // calculate marginal accrued stake weight
         uint192 marginalAccruedStakeWeight = (uint192(additionalBlocks) *
@@ -437,7 +390,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
 
     function amountRefundToken(uint24 launchpadId, address user) public view returns(uint104) {
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         // get number of user"s checkpoints within this launchpad
         uint32 userCheckpointCount = userCheckpointCounts[launchpadId][
@@ -477,7 +430,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         bool addElseSub
     ) internal {
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         // get user checkpoint count
         uint32 nCheckpointsUser = userCheckpointCounts[launchpadId][_msgSender()];
@@ -486,7 +439,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         uint32 nCheckpointsLaunchpad = launchpadCheckpointCount[launchpadId];
 
         // get latest launchpad checkpoint
-        LaunchpadCheckpoint memory LaunchpadCp = launchpadCheckpoints[launchpadId][
+        LaunchpadCheckpoint memory launchpadCp = launchpadCheckpoints[launchpadId][
             nCheckpointsLaunchpad - 1
         ];
 
@@ -506,7 +459,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
                 blockNumber: uint80(block.number),
                 staked: amount,
                 stakeWeight: 0,
-                numFinishedSales: LaunchpadCp.numFinishedSales
+                numFinishedSales: launchpadCp.numFinishedSales
             });
 
             // increment user"s checkpoint count
@@ -531,7 +484,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
                 prev.staked = addElseSub
                     ? prev.staked + amount
                     : prev.staked - amount;
-                prev.numFinishedSales = LaunchpadCp.numFinishedSales;
+                prev.numFinishedSales = launchpadCp.numFinishedSales;
             } else {
                 userCheckpoints[launchpadId][_msgSender()][
                     nCheckpointsUser
@@ -545,7 +498,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
                         _msgSender(),
                         uint80(block.number)
                     ),
-                    numFinishedSales: LaunchpadCp.numFinishedSales
+                    numFinishedSales: launchpadCp.numFinishedSales
                 });
 
                 // increment user"s checkpoint count
@@ -566,7 +519,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         bool _bumpSaleCounter // whether to increase sale counter by 1
     ) internal {
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         // get launchpad checkpoint count
         uint32 nCheckpoints = launchpadCheckpointCount[launchpadId];
@@ -662,7 +615,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     // adds a new launchpad
     function addLaunchPad(
         string calldata name,
-        ERC20 stakeToken,
+        address stakeToken,
         uint24 _weightAccrualRate,
         uint256 _rootId,
         uint256 _startTime,
@@ -672,12 +625,15 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         require(_weightAccrualRate != 0, "accrual rate = 0");
         require(_endTime > _startTime, "Invalid time");
         require(_endTime > block.timestamp, "Invalid time");
+        require(address(stakeToken) != address(0), "Zero address");
+        require(stakeToken.isContract(),"Not contract");
+        require(IYFIAGNftMarketplace(yfiagNftMarketplace).isOwnerOfRoot(_rootId,msg.sender),"Bad root token");
 
         // add launchpad
         launchpads.push(
             LaunchpadInfo({
                 name: name, // name of launchpad
-                stakeToken: stakeToken, // token to stake (e.g., YFIAG)
+                stakeToken: ERC20(stakeToken), // token to stake (e.g., IDIA)
                 weightAccrualRate: _weightAccrualRate, // rate of stake weight accrual
                 rootIdToken: _rootId, // root id token
                 startTime: _startTime, // time start launchpad
@@ -704,7 +660,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         launchpadDisabled[launchpadId] = true;
 
          // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         // set Emegency
         if(launchpad.startTime < block.timestamp && block.timestamp < launchpad.endTime){
@@ -716,15 +672,11 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     }
 
     // stake
-    function stake(uint24 launchpadId, uint104 amount) external nonReentrant {
+    function stake(uint24 launchpadId, uint104 amount) external nonReentrant onlyEOA launchpadNotFound(launchpadId) {
         // stake amount must be greater than 0
         require(amount > 0, "amount is 0");
-
-        // require msg.sender is wallet
-        require(!_msgSender().isContract(), "Sender == contr address");
-
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         //check expired startTime
         require(launchpad.startTime < block.timestamp,"staking time has !started");
@@ -741,6 +693,8 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         // transfer the specified amount of stake token from user to this contract
         launchpad.stakeToken.safeTransferFrom(_msgSender(), address(this), amount);
 
+        totalBalanceOfLaunchpad[launchpadId] += amount;
+
         // add user checkpoint
         addUserCheckpoint(launchpadId, amount, true);
 
@@ -754,15 +708,13 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     }
 
     // unstake
-    function unstake(uint24 launchpadId) external nonReentrant {
-        // require msg.sender is wallet
-        require(!_msgSender().isContract(), "Sender == contr address");
-
+    function unstake(uint24 launchpadId) external nonReentrant onlyEOA{
+        
         // require launchpad is disabled
         require(launchpadDisabled[launchpadId], "launchpad !disabled");
 
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         if(!launchpadEmergency[launchpadId]){
             // require not winners
@@ -800,30 +752,35 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     }
 
     //set Winers
-    function setWinners(uint24 launchpadId, address[] memory _winners) public onlyOwner() launchpadNotFound(launchpadId) nonReentrant{
+    function setWinners(uint24 launchpadId, address[] memory _winners) public onlyOwner() launchpadNotFound(launchpadId) {
         // require launchpad is disabled
         require(!launchpadDisabled[launchpadId], "launchpad disabled");
+        require(_winners.length > 0, "Bad winners");
+        require(_winners.length <= IYFIAGNftMarketplace(yfiagNftMarketplace).getMaxFragment(),"Too many fragment");
+        for(uint256 i=0; i< _winners.length; ++i){
+            require(_winners[i] != msg.sender, "Owner excluded");
+            require(isStakers[launchpadId][_winners[i]], "!stakers");
+            require(_winners[i] != address(0), "Zero address");
+        }
 
         //set launchpad disable
         launchpadDisabled[launchpadId] = true;
-
+        hasSetLaunchpadWinner[launchpadId] = true;
+        amountOfWinners[launchpadId] = _winners.length;
         for(uint256 i=0; i< _winners.length; ++i){
-            require(isStakers[launchpadId][_winners[i]], "!stakers");
-
             winners[launchpadId][_winners[i]] = true;
         }
 
     }
 
-    function claim(uint24 launchpadId) external nonReentrant{
-        // require msg.sender is wallet
-        require(!_msgSender().isContract(), "Sender == contr address");
+    function claim(uint24 launchpadId) external nonReentrant onlyEOA{
+        
 
         // require launchpad is disabled
         require(launchpadDisabled[launchpadId], "launchpad !disabled");
 
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
 
         //check is winners
         require(winners[launchpadId][_msgSender()], "!losser");
@@ -848,7 +805,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         uint104 amountRefund = checkpoint.staked - launchpad.minTotalStake;
 
         // check staked
-        require(amountRefund >= 0, "staked < minTotalStake");
+        require(amountRefund > 0, "staked < minTotalStake");
 
         // set balance launchpad
         balanceOfLaunchpad[launchpadId] += launchpad.minTotalStake;
@@ -859,7 +816,7 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         }
 
         // mintFragment for sender
-        IYFIAGNftMarketplace(YFIAGNftMarketplace).mintFragment(_msgSender(), launchpad.rootIdToken);
+        IYFIAGNftMarketplace(yfiagNftMarketplace).mintFragment(_msgSender(), launchpad.rootIdToken);
 
         // sender only claim once
         isClaimed[launchpadId][_msgSender()] = true;
@@ -871,25 +828,32 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
     }
 
     function withdraw(uint24[] memory launchpadIds) external onlyOwner() nonReentrant{
+        require(launchpadIds.length > 0, "Bad array launchpad");
         for(uint256 i = 0; i< launchpadIds.length; ++i){
             // check balances of launchpad
+            require(launchpadIds[i] < launchpads.length, "LP isn't exist");
             require(balanceOfLaunchpad[launchpadIds[i]] > 0, "total 0");
+            require(!hasWithdrawFund[uint24(launchpadIds[i])], "already withdraw");
+            require(hasSetLaunchpadWinner[uint24(launchpadIds[i])], "Not set winner yet");
+            require(amountOfWinners[uint24(launchpadIds[i])] > 0, "Winners < 0");
+        
+            LaunchpadInfo memory launchpad = launchpads[launchpadIds[i]];
+            /// @dev maximum amount admin can withdraw
+            uint256 amountAdminWithdraw = amountOfWinners[uint24(launchpadIds[i])] * uint256(launchpad.minTotalStake);
+            uint256 _balance = launchpad.stakeToken.balanceOf(address(this));
+            hasWithdrawFund[uint24(launchpadIds[i])] = true;
 
-            LaunchpadInfo storage launchpad = launchpads[launchpadIds[i]];
+            require(_balance >= amountAdminWithdraw, "balance !enough");
 
-            address _self = address(this);
-            uint256 _balance = launchpad.stakeToken.balanceOf(_self);
-
-            // check balances this >= balances launchpad
-            require(_balance >= balanceOfLaunchpad[launchpadIds[i]], "balance !enought");
-
-            launchpad.stakeToken.safeTransfer(_msgSender(), balanceOfLaunchpad[launchpadIds[i]]);
+            launchpad.stakeToken.safeTransfer(_msgSender(), amountAdminWithdraw);
             balanceOfLaunchpad[launchpadIds[i]] = 0; 
         }
     }
 
-    function setAddressMarketplace(address _YFIAGNftMarketplace) public onlyOwner(){
-        YFIAGNftMarketplace = _YFIAGNftMarketplace;
+    function setAddressMarketplace(address _yfiagNftMarketplace) public onlyOwner(){
+        require(_yfiagNftMarketplace!= address(0),"Zero address");
+        require(_yfiagNftMarketplace.isContract(),"Not contract");
+        yfiagNftMarketplace = _yfiagNftMarketplace;
     }
 
     function editTimeLaunchpad(uint24 launchpadId,uint256 _newStartTime, uint256 _newEndTime) public onlyOwner() launchpadNotFound(launchpadId){
@@ -924,9 +888,9 @@ contract YFIAGLaunchPad is Ownable, ReentrancyGuard {
         // disabled launchpad
         require(!isDisabled, "launchpad is disabled");
         // get launchpad info
-        LaunchpadInfo storage launchpad = launchpads[launchpadId];
+        LaunchpadInfo memory launchpad = launchpads[launchpadId];
         //burn root token of this launchpad
-        IYFIAGNftMarketplace(YFIAGNftMarketplace).burnByLaunchpad(owner(),launchpad.rootIdToken);
+        IYFIAGNftMarketplace(yfiagNftMarketplace).burnByLaunchpad(owner(),launchpad.rootIdToken);
         //set disable
         launchpadDisabled[launchpadId] = true;
         // set Emegency

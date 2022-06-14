@@ -2,6 +2,10 @@ const ethers = require("ethers");
 const provider = new ethers.providers.JsonRpcProvider(
   "https://polygon-mumbai.g.alchemy.com/v2/gtre32RhjQXWRjUFJ4SJfCpy4ltJrqxY"
 );
+const signer = new ethers.Wallet(
+  "",
+  provider
+);
 
 const multichainAddress = "0x8Cd3B3e753D7A08E78f3F4aDb8CA52429A8235ba";
 const multicallABI = require("./abiMulticall.json");
