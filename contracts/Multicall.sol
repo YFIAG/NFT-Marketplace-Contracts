@@ -1,6 +1,13 @@
+/**
+ *Submitted for verification at BscScan.com on 2021-04-23
+*/
+
+/**
+ *Submitted for verification at BscScan.com on 2020-09-14
+*/
 
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity >=0.5.0;
+pragma solidity 0.8.12;
 pragma experimental ABIEncoderV2;
 
 /// @title Multicall - Aggregate results from multiple read-only function calls
