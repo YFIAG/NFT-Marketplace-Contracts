@@ -8,7 +8,7 @@ import "./utils/Ownable.sol";
 import "./interfaces/IYFIAGNftPool.sol";
 import "./utils/ReentrancyGuard.sol";
 
-contract YFIAGNftPool is IYFIAGNftPool, Ownable, ReentrancyGuard{
+contract YFIAGNftPool is IYFIAGNftPool, Ownable, ReentrancyGuard {
     IYFIAGNftMarketplace public yfiagMKT;
     using Address for address;
 
@@ -18,66 +18,91 @@ contract YFIAGNftPool is IYFIAGNftPool, Ownable, ReentrancyGuard{
         yfiagMKT = IYFIAGNftMarketplace(_yfiagNftMarketplace);
         transferOwnership(_owner);
     }
-    modifier onlyEOA(){
+
+    modifier onlyEOA() {
         require(tx.origin == msg.sender, "Only EOA");
         _;
     }
 
-    modifier onlyOwnerOrMarketplace(){
-        require(_msgSender() == owner() || _msgSender() == address(yfiagMKT), "Already inprocess");
+    modifier onlyOwnerOrMarketplace() {
+        require(
+            _msgSender() == owner() || _msgSender() == address(yfiagMKT),
+            "Already inprocess"
+        );
         _;
     }
 
-    function getBalance() public view override returns(uint256) {
+    function getBalance() public view override returns (uint256) {
         address _self = address(this);
         uint256 _balance = _self.balance;
         return _balance;
     }
 
-    function getAmountEarn(address _user, address _tokenAddress) public view override returns(uint256){
+    function getAmountEarn(address _user, address _tokenAddress)
+        public
+        view
+        override
+        returns (uint256)
+    {
         return yfiagMKT.getAmountEarn(_user, _tokenAddress);
     }
 
-    function getAmountWithdrawn(address _user, address _tokenAddress) public view override returns(uint256){
+    function getAmountWithdrawn(address _user, address _tokenAddress)
+        public
+        view
+        override
+        returns (uint256)
+    {
         return amountWithdrawn[_user][_tokenAddress];
     }
 
-    function withdraw(address _tokenAddress) external override nonReentrant onlyEOA {
+    function withdraw(address _tokenAddress)
+        external
+        override
+        nonReentrant
+        onlyEOA
+    {
         uint256 subOwnerFee = yfiagMKT.getAmountEarn(msg.sender, _tokenAddress);
-        if(_tokenAddress == address(0)){
+        if (_tokenAddress == address(0)) {
             require(subOwnerFee > 0, "Earn = 0");
             require(address(this).balance >= subOwnerFee, "Balance invalid");
             amountWithdrawn[msg.sender][_tokenAddress] += subOwnerFee;
             yfiagMKT.setDefaultAmountEarn(msg.sender, _tokenAddress);
             payable(msg.sender).transfer(subOwnerFee);
-        }else{
+        } else {
             require(subOwnerFee > 0, "Earn = 0");
-            require(IERC20(_tokenAddress).balanceOf(address(this)) >= subOwnerFee, "Balance invalid");
+            require(
+                IERC20(_tokenAddress).balanceOf(address(this)) >= subOwnerFee,
+                "Balance invalid"
+            );
             amountWithdrawn[msg.sender][_tokenAddress] += subOwnerFee;
             yfiagMKT.setDefaultAmountEarn(msg.sender, _tokenAddress);
-            IERC20(_tokenAddress).transfer( msg.sender, subOwnerFee);
+            IERC20(_tokenAddress).transfer(msg.sender, subOwnerFee);
         }
     }
 
-    function subOwnerFeeBalance() public payable override{
-    }
+    function subOwnerFeeBalance() public payable override {}
 
-    function setMarketplaceAddress(address marketPlaceAddress) external override onlyOwner() {
-        require(marketPlaceAddress != address(0),"Bad address");
-        require(marketPlaceAddress.isContract(),"Not contract");
+    function setMarketplaceAddress(address marketPlaceAddress)
+        external
+        override
+        onlyOwner
+    {
+        require(marketPlaceAddress != address(0), "Bad address");
+        require(marketPlaceAddress.isContract(), "Not contract");
         yfiagMKT = IYFIAGNftMarketplace(marketPlaceAddress);
     }
 
-    function migratePool(address newPool, address _tokenAddress) public onlyOwnerOrMarketplace() {
-        require(newPool != address(0),"Bad address");
-        require(newPool.isContract(),"Not contract");
-        if(getBalance() > 0){
+    function migratePool(address newPool, address _tokenAddress)
+        public
+        onlyOwnerOrMarketplace
+    {
+        require(newPool != address(0), "Bad address");
+        require(newPool.isContract(), "Not contract");
+        if (getBalance() > 0) {
             payable(newPool).transfer(getBalance());
-        }
-        if(IERC20(_tokenAddress).balanceOf(address(this)) > 0){
-            uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
-            IERC20(_tokenAddress).transfer(newPool, amount);
         }
     }
 
+    receive() external payable {}
 }

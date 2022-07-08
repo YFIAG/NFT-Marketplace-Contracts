@@ -51,13 +51,6 @@ contract YFIAGNftMarketplace is IYFIAGNftMarketplace, ERC721, IERC721Pausable{
         _;
     }
 
-    modifier excuteTransaction(uint256 _tokenId){
-        require(!inProcess[_tokenId], "Already inprocess");
-        inProcess[_tokenId]  = true;
-        _;
-        inProcess[_tokenId]  = false;
-    }
-
     function getPlatformFee() public view returns(uint256) {
         return platformFee;
     }
@@ -241,7 +234,9 @@ contract YFIAGNftMarketplace is IYFIAGNftMarketplace, ERC721, IERC721Pausable{
         require(pool != address(0),"Bad pool");
         require(pool.isContract(),"Not contract");
         // transfer all fund to new pool 
-        IYFIAGNftPool(yfiagPool).migratePool(pool, address(0));
+        if(yfiagPool != address(0)){
+            IYFIAGNftPool(yfiagPool).migratePool(pool, address(0));
+        }
         yfiagPool = pool;
         emit SetNewPool(pool);
     }
@@ -310,7 +305,7 @@ contract YFIAGNftMarketplace is IYFIAGNftMarketplace, ERC721, IERC721Pausable{
             tokenId++;
     }
 
-    function setPriceAndSell(uint256 _tokenId, uint256 _price) public override tokenNotFound(_tokenId) isNotRootToken(_tokenId) excuteTransaction(_tokenId){
+    function setPriceAndSell(uint256 _tokenId, uint256 _price) public override tokenNotFound(_tokenId) isNotRootToken(_tokenId) {
         require(ownerOf(_tokenId) == msg.sender, "isn`t owner of token");
         prices[_tokenId] = _price;
         _resume(_tokenId);        
@@ -318,7 +313,7 @@ contract YFIAGNftMarketplace is IYFIAGNftMarketplace, ERC721, IERC721Pausable{
         emit PriceChanged(_tokenId, _price, tokenAddress[_tokenId], msg.sender);
     }
 
-    function buy(uint256 _tokenId) public payable override tokenNotFound(_tokenId) isNotRootToken(_tokenId) onlyEOA excuteTransaction(_tokenId){ 
+    function buy(uint256 _tokenId) public payable override tokenNotFound(_tokenId) isNotRootToken(_tokenId) onlyEOA { 
         require(tokenStatus[_tokenId], "Token not for sale");
         require(ownerOf(_tokenId) != msg.sender, "already owner of token");
         require(tokenAddress[_tokenId] == address(0), "Not native token");
