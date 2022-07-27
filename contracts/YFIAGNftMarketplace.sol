@@ -305,7 +305,11 @@ contract YFIAGNftMarketplace is IYFIAGNftMarketplace, ERC721, IERC721Pausable{
             tokenId++;
     }
 
+    ///@dev change flow setPriceAndSell require token to be locked, and will be unlocked when setPriceAndSell transaction mined,
+    /// to avoid any frontrun buy nft at lower price
+
     function setPriceAndSell(uint256 _tokenId, uint256 _price) public override tokenNotFound(_tokenId) isNotRootToken(_tokenId) {
+        require(!tokenStatus[_tokenId], "token not locked");
         require(ownerOf(_tokenId) == msg.sender, "isn`t owner of token");
         prices[_tokenId] = _price;
         _resume(_tokenId);        
